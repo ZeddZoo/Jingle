@@ -22,9 +22,10 @@ class Song(object):
             self.soundList.append([self.silence[:self.secondsPerBar]] * 4)
         self.instrumentRack = []
         self.rectList = []
+        self.selectedInstrument = 0
 
     def saveSong(self):
-        pickle.dump(self, "%s.pyc" % self.songName)
+        pickle.dump(self, open("%sproject.pyc" % self.songName, "wb"))
 
     def exportSong(self):
         song = self.silence[:0]

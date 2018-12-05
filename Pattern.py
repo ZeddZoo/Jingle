@@ -5,12 +5,17 @@
 ####################
 
 from pydub import AudioSegment
+from Synthesizer import *
+import numpy
 
 silence = AudioSegment.from_wav("Silence.wav")
+
+#####SOUNDS SAMPLED FROM FL STUDIO 20 DEFAULT DRUM KIT########
 hat = AudioSegment.from_wav("Hat.wav")
 kick = AudioSegment.from_wav("Kick.wav")
 snare = AudioSegment.from_wav("Snare.wav")
 clap = AudioSegment.from_wav("Clap.wav")
+##############################################################
 
 
 class Pattern(object):
@@ -40,6 +45,8 @@ class Pattern(object):
 
     def addToPlayList(self, position):
         self.patternPos = position
+
+
 
 
 
@@ -83,10 +90,43 @@ class DrumPattern(Pattern):
 
 class SynthPattern(Pattern):
     # Make sure to check if this increments patternCount later
-    def __init__(self, patternName=len(Pattern.patternList), barCount = 4):
-        super().__init__(patternName, barCount, 1)
-        self.pitchMap = []
+    def __init__(self, patternName=len(Pattern.patternList), barCount = 4, patternPos=-1, tempo = 112, instrPos = -1):
+        super().__init__(patternName, barCount, 1, patternPos, tempo, instrPos)
+        self.scaleIndex = []
+        self.pianoRoll = []
         for bar in range(4 * barCount):
-            self.pitchMap.append([[0]])
+            self.pianoRoll.append([0] * 25)
+
+    def export(self, synth):
+        secondsPerBeat = 60 * 1000 // (4 * self.tempo)
+        exportPattern = silence[:0]
+
+
+        for beat in self.pianoRoll:
+            beatSound = silence[200:secondsPerBeat + 200]
+            for pitch in range(len(beat)):
+                if beat[pitch] == 1:
+                    actualPitch = len(beat) - pitch - 1
+                    t1, t2, t3 = synth.synthesizer.freqList
+                    t1 = int(t1 * ((2 ** (1 / 12)) ** actualPitch))
+                    t2 = int(t2 * ((2 ** (1 / 12)) ** actualPitch))
+                    t3 = int(t3 * ((2 ** (1 / 12)) ** actualPitch))
+                    lcmT = numpy.lcm.reduce([t1, t2, t3])   #From scipy.org
+                    if lcmT > secondsPerBeat:
+                        beatSound = beatSound.overlay(synth.synthesizer.sampleList[actualPitch][200:secondsPerBeat + 200])
+                    else:
+                        print('hello', lcmT)
+                        beatSound = beatSound.overlay(synth.synthesizer.sampleList[actualPitch][200:lcmT * 1000 + 200])
+                        beatSound = beatSound * 1000
+                        beatSound = beatSound[:secondsPerBeat]
+            exportPattern += beatSound
+
+        return exportPattern
+
+    def exportAsPlaying(self, synth):
+        nowPlaying = self.export(synth)
+        nowPlaying.export("Now Playing.wav", format="wav")
+
+
 
 
