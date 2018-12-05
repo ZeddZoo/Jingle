@@ -17,6 +17,8 @@ import pygame
 
 ####################
 
+module_manager.review()
+
 pygame.init()
 
 size = (1080, 720)
@@ -33,6 +35,7 @@ saveButton = pygame.image.load("Save.png")
 backgroundRect = background.get_rect()
 settingsIcon = pygame.image.load("Settings.png")
 trashIcon = pygame.image.load("trash.png")
+exit = pygame.image.load("doorOut.png")
 currMode = "main menu"
 #"drum pattern editor"#"song editor" #"main menu"
 running = True
@@ -110,6 +113,7 @@ projectList = []
 
 def projectLister(projectList):
     projList = []
+
     projectObjectList = projectList
 
     #From 112 notes
@@ -123,7 +127,9 @@ def projectLister(projectList):
     def getProjectsFromDir(projectObjectList, projList):
         for objectDirectory in projList:
             file = open(objectDirectory, "rb")
-            projectObjectList.append(pickle.load(file))
+            fileObject = pickle.load(file)
+            if fileObject not in projectObjectList:
+                projectObjectList.append(fileObject)
 
     # Many thanks to stackoverload for os.getcwd
     # (https://stackoverflow.com/questions/3430372/how-to-get-full-path-of-current-files-directory-in-python)
@@ -175,6 +181,9 @@ while running:
         pygame.draw.line(screen, (255, 0, 0), (600, 20), (600, 600), 1)
         pygame.draw.line(screen, (255, 0, 0), (20, 620), (1060, 620), 1)
 
+        exitToMenuRect = pygame.Rect((20, 640), (64, 64))
+        screen.blit(exit, exitToMenuRect)
+
         ##########LIST FILES##########
         statsBoxrect = pygame.Rect((600, 0), (480, 620))
 
@@ -199,6 +208,9 @@ while running:
             newSongText = controlFontLittle.render("Create New Song", True, (255, 255, 255))
             screen.blit(newSongText, newSongRect)
             if pygame.mouse.get_pressed()[0]:
+                if exitToMenuRect.collidepoint(pygame.mouse.get_pos()):
+                    currMode = "main menu"
+                    screenUncleared = True
                 if newSongRect.collidepoint(pygame.mouse.get_pos()):
                     songName = "hello world"
                     tempo = "112"
@@ -281,6 +293,7 @@ while running:
                                 continueBreaking = True
                                 goingForward = True
                                 break
+
                             elif not pygame.Rect(namePopupRect).collidepoint(pygame.mouse.get_pos()):
                                 screenUncleared = True
                                 break
@@ -316,6 +329,8 @@ while running:
                     currMode = "song editor"
                     selectedPattern = None
                     screenUncleared = True
+
+
 
         pygame.display.flip()
 
@@ -365,7 +380,7 @@ while running:
         unselectedColor = (100, 100, 100)
         selectedColor = (255, 255, 0)
 
-        if len(selectedSong.rectList) == 0:
+        if len(selectedSong.rectList) != len(selectedSong.instrumentRack):
             for instrument in range(len(instrumentRack)):
                 instrumentPatterns = []
                 for pattern in range(len(patternList[instrument])):
@@ -377,7 +392,7 @@ while running:
         for instrument in range(len(instrumentRack)):
             for pattern in range(len(patternList[instrument])):
                 if patternList[instrument][pattern] is None:
-                    pygame.draw.rect(screen, unselectedColor, selectedSong.rectList[instrument][pattern])
+                    # pygame.draw.rect(screen, unselectedColor, selectedSong.rectList[instrument][pattern])
                     addRect = ((265 + pattern * barDivision + barDivision // 2 - 45,
                                 instrument * instrumentHeight + 20 + instrumentHeight // 2 - 50), (50, 50))
                     screen.blit(plusButton, addRect)
@@ -387,6 +402,8 @@ while running:
                             patternName = getPatternCount(selectedSong.patternList)
 
                             while True:
+
+                                breakLoop = False
 
                                 if len(selectedSong.songName) > 18:
                                     nameEntryFontSize = 65 - len(patternName)
@@ -419,6 +436,8 @@ while running:
                                     if event.type == pygame.KEYDOWN:
                                         if event.key == pygame.K_BACKSPACE:
                                             patternName = patternName[:-1]
+                                        elif event.key == pygame.K_ESCAPE:
+                                            breakLoop = True
                                         else:
                                             patternName += pygame.key.name(event.key)
                                             if len(selectedSong.songName) >= 25:
@@ -443,27 +462,83 @@ while running:
                                             selectedSong.selectedInstrument = instrument
                                             screenUncleared = True
                                         break
+                                    # elif not pygame.Rect(namePopupRect).collidepoint(pygame.mouse.get_pos()):
+                                    #     screenUncleared = True
+                                    #     break
+
+                                if breakLoop:
+                                    screenUncleared = True
+                                    break
 
                                 pygame.display.flip()
+
+                    pygame.display.flip()
                 else:
-                    pygame.draw.rect(screen, selectedColor, selectedSong.rectList[instrument][pattern])
+                    pass
+                    # pygame.draw.rect(screen, selectedColor, selectedSong.rectList[instrument][pattern])
 
                     #Draw the name rect
 
                 if isinstance(patternList[instrument][pattern], Pattern):
-                    pygame.draw.rect(screen, selectedColor, selectedSong.rectList[instrument][pattern])
+                    # pygame.draw.rect(screen, selectedColor, selectedSong.rectList[instrument][pattern])
                     text = patternList[instrument][pattern].name
                     patternNameRect = ((250 + pattern * barDivision + barDivision // 2 - 5 * len(text),
                                    instrument * instrumentHeight + 20 + instrumentHeight // 2 - 64), (64, 64))
-                    patternNameRenderation = pygame.font.Font("DisposableDroidBB_ital.otf", 60 // int(len(text) ** .5)).render(text, True, (0, 0, 0))
+                    patternNameRenderation = pygame.font.Font("DisposableDroidBB_ital.otf", 60 // int(len(text) ** .5)).render(text, True, (255, 255, 255))
                     screen.blit(patternNameRenderation, patternNameRect)
-
                     deleteRect = ((280 + pattern * barDivision + barDivision // 2,
                                    instrument * instrumentHeight + 20 + instrumentHeight // 2 - 16), (64, 64))
                     newSettingsRect = ((((280 - 64 + pattern * barDivision + barDivision // 2,
                                    instrument * instrumentHeight + 20 + instrumentHeight // 2 - 16), (64, 64))))
                     screen.blit(trashIcon, deleteRect)
                     screen.blit(settingsIcon, newSettingsRect)
+                    if pygame.mouse.get_pressed()[0]:
+                        position = pygame.mouse.get_pos()
+                        if pygame.Rect(deleteRect).collidepoint(position):
+                            deleting = True
+                            while deleting:
+                                deleteConfirmRect = ((200, 100), (680, 420))
+                                pygame.draw.rect(screen, (50, 50, 50), deleteConfirmRect)
+                                doubleCheckFont = pygame.font.Font("DisposableDroidBB_ital.otf", 55)
+                                deleteRender = doubleCheckFont.render("Delete this pattern?", True, (255, 255, 255))
+                                prompt = doubleCheckFont.render("y -> Delete    n -> Cancel", True, (255, 255, 255))
+                                deleteCheckRect = pygame.Rect((((220, 200), (680, 100))))
+                                deletePromptRect = pygame.Rect((((220, 300), (680, 100))))
+
+                                for event in pygame.event.get():
+                                    if event.type == pygame.KEYDOWN:
+                                        if event.key == pygame.K_y:
+                                            selectedSong.patternList[instrument][pattern] = None
+                                            selectedSong.soundList[instrument][pattern] = selectedSong.silence[:selectedSong.secondsPerBar]
+                                            deleting = False
+                                            screenUncleared = True
+                                            break
+                                        elif event.key == pygame.K_n:
+                                            print('ok')
+                                            deleting = False
+                                            screenUncleared = True
+                                            break
+
+                                screen.blit(deleteRender, deleteCheckRect)
+                                screen.blit(prompt, deletePromptRect)
+                                pygame.display.flip()
+
+                        elif pygame.Rect(newSettingsRect).collidepoint(position):
+                            instrumentPatternToCreate = selectedSong.instrumentRack[instrument]
+                            if isinstance(instrumentPatternToCreate, DrumKit):
+                                selectedPattern = patternList[instrument][pattern]
+                                currMode = "drum pattern editor"
+                                selectedSong.selectedInstrument = instrument
+                            elif isinstance(instrumentPatternToCreate, Lead):
+                                selectedPattern = patternList[instrument][pattern]
+                                currMode = "synth pattern editor"
+                                selectedSong.selectedInstrument = instrument
+                            screenUncleared = True
+
+
+
+                        elif pygame.Rect(newSettingsRect).collidepoint(position):
+                            print("ouch")
 
         exportRect = ((20, 640), (64, 64))
         screen.blit(exportButton, exportRect)
@@ -473,6 +548,9 @@ while running:
 
         saveSongRect = ((164, 640), (64, 64))
         screen.blit(saveButton, saveSongRect)
+
+        exitToFileSelectRect = pygame.Rect((1080 - 20 - 64, 640), (64, 64))
+        screen.blit(exit, exitToFileSelectRect)
 
         if pygame.mouse.get_pressed()[0]:
             if pygame.Rect(exportRect).collidepoint(pygame.mouse.get_pos()):
@@ -505,6 +583,10 @@ while running:
                     time.sleep(2)
                     screenUncleared = True
                     break
+            if pygame.Rect(exitToFileSelectRect).collidepoint(pygame.mouse.get_pos()):
+                currMode = "FileSelector"
+                # projectLister(projectList)
+                screenUncleared = True
 
 
         for instrument in range(4):
@@ -623,19 +705,104 @@ while running:
                                     editing = False
                                     screenUncleared = True
 
-
-
                         pygame.display.flip()
 
-
-
-                #Draw Delete Instr
             else:
-                #Draw Add Instr
-                pass
+                addInstrRect = pygame.Rect(((70, (instrument + .25) * instrumentHeight + 10), (64, 64)))
+                screen.blit(plusButton, addInstrRect)
+                if pygame.mouse.get_pressed()[0]:
+                    if addInstrRect.collidepoint(pygame.mouse.get_pos()):
+                        addingInstr = True
+                        instrName = "Pat. Name"
+                        selectedInstrBox = "drumBox"
+                        instrBaseFreq = 440
+
+                        while addingInstr:
+
+                            addInstrBoxRect = pygame.Rect((200, 100), (680, 420))
+                            pygame.draw.rect(screen, (50, 50, 50), addInstrBoxRect)
+                            nameInputBox = ((250, 280), (580, 70))
+                            pygame.draw.rect(screen, (255, 255, 255), nameInputBox)
+                            appendInstrBox = pygame.Rect((540 - 64, 390), (64, 64))
+                            screen.blit(playButton, appendInstrBox)
+
+                            drumBox = pygame.Rect((250, 150), (240, 60))
+                            synthBox = pygame.Rect((250 + 290, 150), (240, 60))
+
+                            drumBoxTextRender = controlFontLittle.render("Drums", True, (255, 255, 255))
+                            synthBoxTextRender = controlFontLittle.render("Synths", True, (255, 255, 255))
+
+                            instrNameRender = controlFontLittle.render(" " + instrName, True, (0, 0, 0))
+
+                            screen.blit(drumBoxTextRender, drumBox)
+                            screen.blit(synthBoxTextRender, synthBox)
+                            screen.blit(instrNameRender, nameInputBox)
+
+                            if selectedInstrBox == "drumBox":
+                                pygame.draw.rect(screen, (255, 255, 0), drumBox, 3)
+                            else:
+                                pygame.draw.rect(screen, (255, 255, 0), synthBox, 3)
+
+                            for event in pygame.event.get():
+
+                                if event.type == pygame.MOUSEBUTTONUP:
+                                    position = pygame.mouse.get_pos()
+                                    if drumBox.collidepoint(position):
+                                        selectedInstrBox = "drumBox"
+                                    elif synthBox.collidepoint(position):
+                                        selectedInstrBox = "synthBox"
+                                    elif appendInstrBox.collidepoint(position):
+                                        if selectedInstrBox == "drumBox":
+                                            instrumentRack.append(DrumKit(instrName))
+                                            addingInstr = False
+                                            screenUncleared = True
+                                        else:
+                                            promptingFreq = True
+
+                                            while promptingFreq:
+                                                bfPromptBox = pygame.Rect((250, 150), (580, 320))
+                                                pygame.draw.rect(screen, (50, 50, 50), bfPromptBox)
+                                                pygame.draw.rect(screen, (255, 255, 255), bfPromptBox, 5)
+                                                bfBox = pygame.Rect((280, 200), (500, 70))
+                                                pygame.draw.rect(screen, (255, 255, 255), bfBox)
+                                                bfRender = controlFontLittle.render(str(instrBaseFreq) + "Hz", True, (0, 0, 0))
+
+                                                screen.blit(bfRender, bfBox)
+
+                                                for event in pygame.event.get():
+                                                    if event.type == pygame.KEYDOWN:
+                                                        if event.key == pygame.K_BACKSPACE:
+                                                            instrBaseFreq //= 10
+                                                        elif event.key == pygame.K_RETURN:
+                                                            screenUncleared = True
+                                                            promptingFreq = False
+
+                                                        elif pygame.key.name(event.key) in string.digits:
+                                                            instrBaseFreq = instrBaseFreq * 10 + int(pygame.key.name(event.key))
+
+                                                pygame.display.flip()
+
+                                            print(patternList)
+                                            print(instrumentRack)
+
+                                            instrumentRack.append(Lead(instrName, instrBaseFreq))
+                                            instrumentRack[-1].synthesizer.getScale()
+                                            addingInstr = False
+                                            screenUncleared = True
+                                            print(patternList)
+                                            print(instrumentRack)
+
+                                elif event.type == pygame.KEYDOWN:
+                                    if event.key == pygame.K_BACKSPACE:
+                                        instrName = instrName[:-1]
+                                    elif pygame.key.name(event.key) in (string.digits + string.ascii_letters):
+                                        instrName += pygame.key.name(event.key)
+                                        if len(instrName) > 10:
+                                            instrName = instrName[:-1]
+
+                            pygame.display.flip()
 
             pygame.display.flip()
-
 
 
     if currMode == "drum pattern editor":
@@ -664,7 +831,11 @@ while running:
                     if beat % 4 == 0:
                         width = 3
                     else: width = 1
-                    instrRow.append(pygame.draw.rect(pianoRoll, (255, 255, 255), beatrect, width))
+                    isFilled = (selectedPattern.pianoRoll[beat][instrument] == 1)
+                    color = (255, 255, 255)
+                    if isFilled:
+                        color = (255, 255, 0)
+                    instrRow.append(pygame.draw.rect(pianoRoll, color, beatrect, width))
 
 
                 pianoRollRects.append(instrRow)
@@ -774,7 +945,13 @@ while running:
                         baseFreqRect = ((150, offSetY + pitch * pitchIndexHeight - 50 * octaveNumber), (beatWidth, pitchIndexHeight))
                         screen.blit(renderedFreq, baseFreqRect)
                     beatList.append(beatRect)
-                    pygame.draw.rect(screen, (255, 255, 255), beatRect, width)
+
+                    isFilled = (selectedPattern.pianoRoll[beat][pitch] == 1)
+                    color = (255, 255, 255)
+                    if isFilled:
+                        color = (255, 255, 0)
+
+                    pygame.draw.rect(screen, color, beatRect, width)
                 pitchRowRects.append(beatList)
 
             pattGridsDrawn = True

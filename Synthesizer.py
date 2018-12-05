@@ -15,7 +15,7 @@ class Synthesizer3OSC(object):
     def __init__(self, name, baseFreq=440, samplingRate = 96000):
         self.name = name
         self.baseFreq = baseFreq
-        self.samplingRate = samplingRate
+        self.samplingRate = 44100
         self.waveForm = None
         self.waveTables = [[], [], []]
         self.waveForms = ["sine", "sine", "sine"]
@@ -34,7 +34,7 @@ class Synthesizer3OSC(object):
     def deleteOsc(self, osc):
         self.waveTables[osc - 1] = []
 
-    def genWaveTable(self, frequency, osc=1, volume=.3):
+    def genWaveTable(self, frequency, osc=1, volume=.2):
 
         # self.freqList[osc - 1] = frequency
 
